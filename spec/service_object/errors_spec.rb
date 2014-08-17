@@ -1,0 +1,45 @@
+require 'spec_helper'
+
+describe ServiceObject::Errors do
+  # This example is not comprehensive
+  it 'delegates to @messages' do
+    messages = subject.messages
+    [:unshift, :push, :<<].each do |method|
+      expect(messages).to receive(method).with(100)
+      subject.__send__(method, 100)
+    end
+  end
+
+  describe '#add' do
+    it 'adds new error(s) to @messages' do
+      subject.add 'Error 1'
+      expect(subject.messages).to eq ['Error 1']
+      subject.add 'Error 2'
+      expect(subject.messages).to eq ['Error 1', 'Error 2']
+    end
+  end
+
+  describe '#full_message' do
+    it 'returns the same value as @messages' do
+      subject.add 'Error 1'
+      expect(subject.full_messages).to eq subject.messages
+      subject.add 'Error 2'
+      expect(subject.full_messages).to eq subject.messages
+    end
+  end
+
+  describe '.flattened_active_model_error' do
+    it 'returns error info of given active model instance as string' do
+      class DummyActiveModel
+        include ActiveModel::Model
+        attr_reader :name, :age
+        validates :name, presence: true
+        validates :age, numericality: { only_integer: true }
+      end
+      dummy_model = DummyActiveModel.new
+      dummy_model.valid?
+      expect(described_class.flattened_active_model_error(dummy_model)).
+        to eq 'DummyActiveModel: Name can\'t be blank, Age is not a number'
+    end
+  end
+end
