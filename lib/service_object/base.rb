@@ -1,4 +1,7 @@
 module ServiceObject
+  # Service object base class which provides interfaces to controllers so that
+  # they can access the result of service processing and its errors if any.
+  # Uses ServiceObject::Errors as the error container.
   class Base
     # @return [ServiceObject::Errors] Errors object of the current service
     attr_reader :errors

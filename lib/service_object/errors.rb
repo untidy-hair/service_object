@@ -1,8 +1,10 @@
 module ServiceObject
   require 'delegate'
 
+  # Responsible for containing, providing and adding errors on service layer.
+  # Also provides a utility to stringify active model errors.
   class Errors < Delegator
-    # @return [Array] Messages of the current errors
+    # @return [Array<String>] Messages of the current errors
     attr_reader :messages
 
     def initialize
@@ -14,7 +16,7 @@ module ServiceObject
     end
 
     # Return all the current error messages
-    # @return [Array] Messages of the current errors
+    # @return [Array<String>] Messages of the current errors
     def full_messages
       messages
     end
