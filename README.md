@@ -3,7 +3,14 @@
 ServiceObject provides conventions and utility to Service objects in your Rails
 application.
 
-## Service
+## Install
+```ruby
+gem 'service_object', :git => 'https://github.com/untidy-hair/service_object.git'
+```
+
+## Sample
+
+### Service
 ```ruby
 class CreateMyBookService < ServiceObject::Base
   def initialize(isbn)
@@ -47,7 +54,9 @@ class CreateMyBookService < ServiceObject::Base
 end
 ```
 
-## Controller
+### Controller
+Your controller will be well-readable and easy to understand the flow.
+
 ```ruby
   def some_action_on_book
     service = CreateMyBookService.new(params[:isbn])
