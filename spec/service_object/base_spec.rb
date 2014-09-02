@@ -44,4 +44,19 @@ describe ServiceObject::Base do
       end
     end
   end
+
+  describe '-#flattened_active_model_error' do
+    it 'returns error info of given active model instance as string' do
+      class DummyActiveModel
+        include ActiveModel::Model
+        attr_reader :name, :age
+        validates :name, presence: true
+        validates :age, numericality: { only_integer: true }
+      end
+      dummy_model = DummyActiveModel.new
+      dummy_model.valid?
+      expect(subject.__send__(:flattened_active_model_error, dummy_model)).
+        to eq 'DummyActiveModel: Name can\'t be blank, Age is not a number'
+    end
+  end
 end

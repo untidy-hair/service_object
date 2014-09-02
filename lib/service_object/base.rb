@@ -22,5 +22,15 @@ module ServiceObject
     def result
       @result && @errors.empty?
     end
+
+    private
+
+    # Change activemodel errors into a string to be added to service errors
+    # @param active_model [ActiveModel] ActiveModel Object
+    #   whose error messages are to be flattened
+    # @return [String] Flattened string error message
+    def flattened_active_model_error(active_model)
+      "#{active_model.class}: #{active_model.errors.full_messages.join(', ')}"
+    end
   end
 end
