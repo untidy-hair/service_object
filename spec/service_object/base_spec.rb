@@ -59,4 +59,19 @@ describe ServiceObject::Base do
         to eq 'DummyActiveModel: Name can\'t be blank, Age is not a number'
     end
   end
+
+  # ToDo: How to expect messages with a block
+  describe '.transaction' do
+    it 'delegates to ActiveRecord::Base.transaction' do
+      expect(ActiveRecord::Base).to receive(:transaction)
+      described_class.transaction { 'hoge' }
+    end
+  end
+
+  describe '#transaction' do
+    it 'delegates to .transaction' do
+      expect(described_class).to receive(:transaction)
+      subject.transaction { 'hoge' }
+    end
+  end
 end

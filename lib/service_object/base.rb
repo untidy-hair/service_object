@@ -23,6 +23,19 @@ module ServiceObject
       @result && @errors.empty?
     end
 
+    # Shorthand for ActiveRecord::Base.transaction
+    def transaction(&block)
+      self.class.transaction(&block)
+    end
+
+    class << self
+
+      # Shorthand for ActiveRecord::Base.transaction
+      def transaction(&block)
+        ActiveRecord::Base.transaction(&block)
+      end
+    end
+
     private
 
     # Change activemodel errors into a string to be added to service errors
