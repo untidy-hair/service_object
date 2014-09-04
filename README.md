@@ -7,8 +7,9 @@ Not only does it let you code complicated business logic easier, it also helps y
 keep controllers well-readable and models single-responsible.
 
 ## Install
+In your Rails application Gemfile, add this line and do 'bundle install'
 ```ruby
-gem 'service_object', :git => 'https://github.com/untidy-hair/service_object.git'
+gem 'service_object'
 ```
 
 ## Sample 1
