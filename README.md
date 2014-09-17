@@ -1,16 +1,35 @@
 # ServiceObject
 
-ServiceObject provides conventions and utility to Service objects in your Rails
+ServiceObject provides conventions and utilities to Service objects in your Rails
 application.
 
-Not only does it let you code complicated business logic easier, it also helps you
-keep controllers well-readable and models single-responsible.
+Not only does it let you code complicated business logic easier, but it also helps you
+keep controllers well-readable and models loose-coupled to each other.
 
 ## Install
 In your Rails application Gemfile, add this line and do 'bundle install'
 ```ruby
 gem 'service_object'
 ```
+
+## Usage (What you need to know)
+1. Interfaces for controllers
+  - ServiceObject::Base\#result: If all the service process goes well so far, it returns true.
+Otherwise it returns false.
+  - ServiceObject::Base\#error_messages: Returns an array of error messages.
+
+2. Conventions
+  - Inherit ServiceObject::Base in your service class.
+  - Your service class needs to call "super()" in its initializer for now. (This may be changed in the future.)
+  - Change @result to false in service object whenever your service fails.
+  - Add an error string to @errors in service object whenever your service fails.
+
+3. Other utility methods
+  - ServiceObject::Base\#logger is delegated to Rails.logger
+  - ServiceObject::Base\#transaction is delegated to ActiveRecord::Base.transaction
+  - ServiceObject::Base\#flattened_active_model_error(private) changes ActiveModel error
+to a string so that the error gets easy to add to @errors
+
 
 ## Sample 1
 
@@ -66,7 +85,7 @@ class CreateMyBookService < ServiceObject::Base
 
   private
 
-  def log_exception(exception, log_level = :warn, logger = Rails.logger)
+  def log_exception(exception, log_level = :warn, logger = logger)
     logger.__send__(log_level.to_sym, "#{exception.class}: #{exception.message}")
     logger.__send__(log_level.to_sym, exception.backtrace)
   end
@@ -74,7 +93,8 @@ end
 ```
 
 ### Controller
-Your controller will be well-readable and easy to understand the flow.
+Your controller will be well-readable and the flow is easy to understand.
+You can use \#result or \#error_messages to know the result of your service.
 
 ```ruby
   def some_action_on_book
@@ -94,7 +114,6 @@ Your controller will be well-readable and easy to understand the flow.
 
 ### Service
 A sample which uses DB transaction.
-("transaction" method is actually ActiveRecord::Base.transaction.)
 
 ```ruby
   # UploadContentService
@@ -109,7 +128,7 @@ A sample which uses DB transaction.
     end
     true
   rescue ActiveRecord::ActiveRecordError => e
-    Rails.logger.warn "[#{e.class}] #{e.message}"
+    logger.warn "[#{e.class}] #{e.message}"
     rollback_uploaded_file
     @errors.add 'Failed to update database'
     @result = false
@@ -141,6 +160,10 @@ A sample which uses DB transaction.
     end
   end
 ```
+
+## To Do
+- Poor document now
+- Integration tests / Tests for each use case
 
 ## Credits
 
