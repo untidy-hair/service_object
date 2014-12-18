@@ -121,19 +121,6 @@ A sample which uses DB transaction.
     # Do something with UserFile non-AR model
   end
 
-  def save_content_and_update_user
-    transaction do
-      save_content
-      update_user
-    end
-    true
-  rescue ActiveRecord::ActiveRecordError => e
-    logger.warn "[#{e.class}] #{e.message}"
-    rollback_uploaded_file
-    @errors.add 'Failed to update database'
-    @result = false
-  end
-
   def save_content_data
     # Do something with Content model (with save!)
   end
@@ -142,8 +129,15 @@ A sample which uses DB transaction.
     # Do something with User model (with save!)
   end
 
+  def rollback_transaction(e)
+    logger.warn "[#{e.class}] #{e.message}"
+    rollback_uploaded_file
+    @errors.add 'Failed to update database'
+    @result = false
+  end
+
   def rollback_uploaded_file
-    # Delete uploaded file or others
+    # Do something to delete the uploaded file
   end
 ```
 
@@ -151,13 +145,19 @@ A sample which uses DB transaction.
 ```ruby
   def some_action_on_content_file
     service = UploadContentService.new(params)
-    service.upload_file &&
-    service.save_content_and_update_user
+    service.transaction do
+      service.upload_file &&
+      service.save_content_data &&
+      service.update_user
+    end
     if service.result
       render json { result: 'success', message: 'Successfully uploaded your content' }
     else
       render json: { result: 'failure', messages: service.error_messages }
     end
+  rescue => ActiveRecord::ActiveRecordError => e
+    service.rollback_transaction(e)
+    render json: { result: 'failure', messages: service.error_messages }
   end
 ```
 
