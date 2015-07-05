@@ -5,12 +5,12 @@ class DummyService < ServiceObject::Base; end
 describe ServiceObject::Base do
   subject { DummyService.new }
 
-  it 'has ServiceObject::Errors instance as an instance variable' do
-    expect(subject.instance_variable_get(:@errors).class).to eq ServiceObject::Errors
+  specify 'The errors attribute is a ServiceObject::Errors instance' do
+    expect(subject.errors).to be_a ServiceObject::Errors
   end
 
-  it 'has @result as true after instantiation' do
-    expect(subject.instance_variable_get(:@result)).to be true
+  specify 'The result attribute is set as true after instantiation' do
+    expect(subject.result).to be true
   end
 
   describe '#error_messages' do
