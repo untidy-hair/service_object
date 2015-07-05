@@ -1,6 +1,6 @@
 # ServiceObject
 
-ServiceObject provides conventions and utilities to Service objects in your Rails
+Opinionated conventions and utilities to service objects/service layers in your Rails
 application.
 
 Not only does it let you code complicated business logic easier, but it also helps you
@@ -33,65 +33,6 @@ to a string so that the error gets easy to add to @errors
 
 ## Sample 1
 
-### Service
-Inherit ServiceObject::Base and implement each business logic.
-
-It is recommended that each method returns true or false so that the controller
-can control the flow easily.
-When something went wrong, add the error message to @error and make @result = false.
-
-```ruby
-class CreateMyBookService < ServiceObject::Base
-  def initialize(isbn)
-    super()
-    @isbn = isbn
-    @book_info = nil
-    @my_book = MyBook.new # ActiveRecord Model
-    @isbn_api = IsbnApi.new(@isbn) # Non-AR Model
-    @library_api = LibraryApi.new # Non-AR Model
-  end
-
-  def get_info_from_isbn_api
-    @book_info = @isbn_api.get_all_info
-    true
-  rescue => e
-    log_exception(e)
-    @errors.add 'Failed to get info from isbn api'
-    @result = false
-  end
-
-  def get_availability_with_library
-    @availability = @library_api.get_avilability(@isbn)
-    true
-  rescue => e
-    log_exception(e)
-    @errors.add 'Failed to get availability from library'
-    @result = false
-  end
-
-  def save_my_book
-    @my_book.available = @availability
-    @my_book.name = @book_info.title
-    @my_book.author = @book_info.author
-    @my_book.isbn = @isbn
-    if @my_book.save
-      true
-    else
-      Rails.logger.warn(@my_book.errors.full_messages.inspect)
-      @errors.add 'Failed to save Mybook'
-      @result = false
-    end
-  end
-
-  private
-
-  def log_exception(exception, log_level = :warn, logger = logger)
-    logger.__send__(log_level.to_sym, "#{exception.class}: #{exception.message}")
-    logger.__send__(log_level.to_sym, exception.backtrace)
-  end
-end
-```
-
 ### Controller
 Your controller will be well-readable and the flow is easy to understand.
 You can use \#result or \#error_messages to know the result of your service.
@@ -103,17 +44,92 @@ You can use \#result or \#error_messages to know the result of your service.
     service.get_availability_with_library &&
     service.save_my_book
     if service.result
-      render json { result: 'success', message: 'Save the book data' }
+      render json: { result: 'success', message: 'Successfully saved the book data' }
     else
       render json: { result: 'failure', messages: service.error_messages }
     end
   end
 ```
 
+### Service
+Inherit ServiceObject::Base and implement each business logic.
+
+It is recommended that each method returns true or false so that the controller
+can control the flow easily.  
+When something goes wrong, add the error message to @errors and make @result = false  
+inside the service object.
+
+```ruby
+class CreateMyBookService < ServiceObject::Base
+  def initialize(isbn)
+    super() # This is necessary
+    @isbn = isbn
+    @book_info = nil
+    @my_book = MyBook.new # ActiveRecord Model
+    @isbn_api = IsbnApi.new(@isbn) # Non-AR Model
+    @library_api = LibraryApi.new # Non-AR Model
+  end
+
+  def get_info_from_isbn_api
+    @book_info = @isbn_api.get_all_info
+    true
+  rescue => e
+    # log_exception(e)
+    @errors.add 'Failed to get info from isbn api'
+    @result = false
+  end
+
+  def get_availability_with_library
+    @availability = @library_api.get_avilability(@isbn)
+    true
+  rescue => e
+    # log_exception(e)
+    @errors.add 'Failed to get availability from library'
+    @result = false
+  end
+
+  def save_my_book
+    @my_book.attributes(
+      available: @availability,
+      name: @book_info.title,
+      author: @book_info.author,
+      isbn: @isbn
+     )
+    if @my_book.save
+      true
+    else
+      @errors.add 'Failed to save Mybook'
+      @result = false
+    end
+  end
+end
+```
+
 ## Sample 2
 
-### Service
 A sample which uses DB transaction.
+
+### Controller
+```ruby
+  def some_action_on_content_file
+    service = UploadContentService.new(params)
+    service.transaction do
+      service.upload_file &&
+      service.save_content_data &&
+      service.update_user
+    end
+    if service.result
+      render json: { result: 'success', message: 'Successfully uploaded your content' }
+    else
+      render json: { result: 'failure', messages: service.error_messages }
+    end
+  rescue ActiveRecord::ActiveRecordError => e
+    service.rollback_transaction(e)
+    render json: { result: 'failure', messages: service.error_messages }
+  end
+```
+
+### Service
 
 ```ruby
   # UploadContentService
@@ -138,26 +154,6 @@ A sample which uses DB transaction.
 
   def rollback_uploaded_file
     # Do something to delete the uploaded file
-  end
-```
-
-### Controller
-```ruby
-  def some_action_on_content_file
-    service = UploadContentService.new(params)
-    service.transaction do
-      service.upload_file &&
-      service.save_content_data &&
-      service.update_user
-    end
-    if service.result
-      render json { result: 'success', message: 'Successfully uploaded your content' }
-    else
-      render json: { result: 'failure', messages: service.error_messages }
-    end
-  rescue => ActiveRecord::ActiveRecordError => e
-    service.rollback_transaction(e)
-    render json: { result: 'failure', messages: service.error_messages }
   end
 ```
 
