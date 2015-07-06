@@ -6,6 +6,9 @@ application.
 Not only does it let you code complicated business logic easier, but it also helps you
 keep controllers well-readable and models loose-coupled to each other.
 
+[![Code Climate](https://codeclimate.com/github/untidy-hair/service_object/badges/gpa.svg)](https://codeclimate.com/github/untidy-hair/service_object)
+[![Build Status](https://travis-ci.org/untidy-hair/service_object.svg?branch=ci-setup)](https://travis-ci.org/untidy-hair/service_object)
+
 ## Install
 In your Rails application Gemfile, add this line and do 'bundle install'
 ```ruby
