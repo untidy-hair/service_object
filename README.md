@@ -6,6 +6,8 @@ application.
 Not only does it let you code complicated business logic easier, but it also helps you
 keep controllers well-readable and models loose-coupled to each other.
 
+[Rails Cast (Pro): #398 Service Objects](http://railscasts.com/episodes/398-service-objects)
+
 [![Code Climate](https://codeclimate.com/github/untidy-hair/service_object/badges/gpa.svg)](https://codeclimate.com/github/untidy-hair/service_object)
 [![Build Status](https://travis-ci.org/untidy-hair/service_object.svg?branch=ci-setup)](https://travis-ci.org/untidy-hair/service_object)
 
@@ -26,6 +28,7 @@ Otherwise it returns false.
   - Your service class needs to call "super()" in its initializer for now. (This may be changed in the future.)
   - Change @result to false in service object whenever your service fails.
   - Add an error string to @errors in service object whenever your service fails.
+  - It's often convenient that all service methods return boolean to control the flow easily (see samples.) 
 
 3. Other utility methods
   - ServiceObject::Base\#logger is delegated to Rails.logger
@@ -115,53 +118,71 @@ A sample which uses DB transaction.
 ### Controller
 ```ruby
   def some_action_on_content_file
-    service = UploadContentService.new(params)
+    service = UploadContentService.new(content_params, session[:user_id])
     service.transaction do
       service.upload_file &&
       service.save_content_data &&
       service.update_user
     end
+
     if service.result
       render json: { result: 'success', message: 'Successfully uploaded your content' }
     else
       render json: { result: 'failure', messages: service.error_messages }
     end
-  rescue ActiveRecord::ActiveRecordError => e
-    service.rollback_transaction(e)
-    render json: { result: 'failure', messages: service.error_messages }
+  rescue ActiveRecord::RecordInvalid => e
+    service.try(:rollback_transaction, e)
+    render json: { result: 'failure', messages: (service.error_messages rescue ['Unknown error']) }
   end
 ```
 
 ### Service
 
 ```ruby
-  # UploadContentService
+class UploadContentService < ServiceObject::Base
+  def initialize(params, user_id)
+    super()
+    @content = Content.new(params)
+    @file = ContentFile.new(params[:file_path])
+    @user = User.find(user_id)
+  end
+
   def upload_file
-    # Do something with UserFile non-AR model
+    if @file.allowed_file_type?
+      @file.build_permission_info
+      @file.queue_upload_job
+      true
+    else
+      @errors.add 'File Type needs to be one of gif/jpg/png'
+      @result = false
+    end
   end
 
   def save_content_data
-    # Do something with Content model (with save!)
+    @content.active = true
+    @content.save!
   end
 
   def update_user
-    # Do something with User model (with save!)
+    @user.contents_counter += 1 # This is just a contrived sample. Use counter_cache
+    @user.save!
   end
 
   def rollback_transaction(e)
-    logger.warn "[#{e.class}] #{e.message}"
     rollback_uploaded_file
-    @errors.add 'Failed to update database'
+    @errors.add flattened_active_model_error(e.record)
     @result = false
   end
 
   def rollback_uploaded_file
-    # Do something to delete the uploaded file
+    if @file.respond_to?(:queued?) && @file.queued?
+      @file.delete_queue_job
+    end
   end
+end
 ```
 
 ## To Do
-- Poor document now
 - Integration tests / Tests for each use case
 
 ## Credits
