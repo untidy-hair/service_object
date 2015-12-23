@@ -1,7 +1,6 @@
-# ServiceObject
+# ServiceObject for Ruby on Rails
 
-Opinionated conventions and utilities to service objects/service layers in your Rails
-application.
+A mini gem to make it easy for you to have service objects in Rails.
 
 Not only does it let you code complicated business logic easier, but it also helps you
 keep controllers well-readable and models loose-coupled to each other.
@@ -119,10 +118,11 @@ A sample which uses DB transaction.
 ```ruby
   def some_action_on_content_file
     service = UploadContentService.new(content_params, session[:user_id])
-    service.transaction do
-      service.upload_file &&
-      service.save_content_data &&
-      service.update_user
+    if service.upload_file
+      service.transaction do
+        service.save_content_data &&
+        service.update_user
+      end
     end
 
     if service.result
