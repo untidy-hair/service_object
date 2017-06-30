@@ -115,7 +115,7 @@ module ServiceObject
     # If you want to specify special behaviors for each error type such as some rollback process or error logging,
     # please override this method. (See README.md Sample 2.)
     def process_exception(e)
-      @errors.add e.message
+      @errors.add "#{e.class}: #{e.message}"
     end
 
     # Change activemodel errors into a string to be added to service errors

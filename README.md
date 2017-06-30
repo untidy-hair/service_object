@@ -79,9 +79,9 @@ You can use \#result or \#error_messages to know the result of your service.
 ```
 
 ### Service
-Inherit ServiceObject::Base and implement each business logic.
+Inherit ServiceObject::Base and implement business logic into methods.
 When something goes wrong, throw an error from inside your method in service.
-The process stops there and the error will be added to service.errors and service.result returns false automatically.
+The process stops there and the error will be added to service.errors (available through service.error_messages) and service.result returns false automatically.
 ```ruby
 class CreateMyBookService < ServiceObject::Base
   def initialize(isbn)
@@ -117,7 +117,7 @@ end
 
 ## Sample 2
 
-A sample with DB transaction.
+A sample with DB transaction and rollback process.
 
 ### Controller
 ```ruby
@@ -151,7 +151,7 @@ class UploadContentService < ServiceObject::Base
   end
 
   def upload_file
-    raise YourFileError, 'File Type needs to be one of gif/jpg/png' unless @file.allowed_file_type?
+    raise YourFileError, "File Type needs to be one of #{ContentFile::TYPES.join('/')}" unless @file.allowed_file_type?
     @file.build_permission_info
     @file.queue_upload_job! # Let's assume this throws ContentFile::YourOwnEnqueueError when failing.
   end
@@ -167,11 +167,11 @@ class UploadContentService < ServiceObject::Base
 
   # Custom error process by overriding the originally defined #process_exception.
   def process_exception(e)
-    if e.is_a? ActiveRecord::RecordInvalid => e
+    if e.is_a? ActiveRecord::ActiveRecordError 
       # When DB persistence fails, revert uploading file, too.
       rollback_uploaded_file
       @errors.add flattened_active_model_error(e.record) # This method is provided for convenience
-    elsif e.is_a? ContentFile::YourOwnEnqueueError, YourFileError
+    elsif e.class.in? [ContentFile::YourOwnEnqueueError, YourFileError]
       # This is still known error.
       logger.warn 'File upload had an issue.'
       @errors.add e.message
