@@ -7,8 +7,8 @@ Gem::Specification.new do |s|
   s.version     = ServiceObject::VERSION
   s.authors     = ['Yukio Mizuta']
   s.email       = ['untidyhair@gmail.com']
-  s.homepage    = 'http://y-mzt.info'
-  s.summary     = 'Opinionated conventions and utilities for service objects/service layers in your Rails application.'
+  s.homepage    = ''
+  s.summary     = 'Small but powerful service objects/service layers library for Rails application.'
   s.description = 'Not only does it let you code complicated business logic easier, but it also helps you keep controllers well-readable and models loose-coupled to each other.'
   s.license     = 'MIT'
 
